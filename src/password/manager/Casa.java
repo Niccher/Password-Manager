@@ -37,6 +37,16 @@ import javax.swing.JSlider;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import java.io.File;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.List;
+import javax.swing.JTable;
+import javax.swing.table.DefaultTableModel;
+
+
 /**
  *
  * @author niccher
@@ -44,7 +54,8 @@ import javax.swing.event.ChangeListener;
 public class Casa extends javax.swing.JFrame {
     
     int slidaint;
-    String pathtest;
+    String pathtest,algo_used;
+    boolean seed;
 
     /**
      * Creates new form Casa
@@ -60,6 +71,7 @@ public class Casa extends javax.swing.JFrame {
         this.setLocation(locationX, locationY);
         
         StartSlida();
+        init();
     }
     
     private void StartSlida(){
@@ -67,97 +79,136 @@ public class Casa extends javax.swing.JFrame {
         slidalen.setPaintLabels(true);       
     }
     
-    private void SaveTestFile(){
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Specify output Destination");   
+    private void init(){
+        //jTabbedPane1.setSelectedIndex(1);
+        //opennfile conf->output
+        Calendar cal =new GregorianCalendar();
+        String yr=String.valueOf(cal.get(Calendar.YEAR));
+        String mn=String.valueOf((cal.get(Calendar.MONTH))+1);
+        String dy=String.valueOf(cal.get(Calendar.DAY_OF_MONTH));
+        
+        String confkey="";
+        entry_date.setText(yr+"-"+mn+"-"+dy);
+        entry_date.setEnabled(Boolean.FALSE);
+        entry_pwd.setEditable(Boolean.FALSE);
+        
+        LoadEntries();
+        
+        /*try {
+            //openssl enc -des-ecb -e -in hello.csv -out hello.csv.des-ecb
+            Process proc = Runtime.getRuntime().exec("openssl enc "+algo_used+" -e -in hello.csv -out hello.csv.des-ecb");
 
-        int userSelection = fileChooser.showSaveDialog(this);
+            BufferedReader reader =new BufferedReader(new InputStreamReader(proc.getInputStream()));
 
-        if (userSelection == JFileChooser.APPROVE_OPTION) {
-            File fileToSave = fileChooser.getSelectedFile();
-            System.out.println("Save as file: " + fileToSave.getAbsolutePath());
-            pathtest=String.valueOf(fileChooser.getSelectedFile());
+            String line = "";
+            StringBuilder sb=new StringBuilder();
+            //proc.getInputStream().reset();
+            while((line = reader.readLine()) != null) {
+                System.out.print(line + "\n");
+                sb.append(line);  
+            }
+            noisetext.setText(String.valueOf(sb));
+            proc.waitFor();
+
+        } catch (IOException ex) {
+            System.out.println("StartNoise > IOException "+ex);
+        } catch (InterruptedException ex) {
+            System.out.println("StartNoise > InterruptedException "+ex);
+        }*/
+        
+    }
+    
+    private String Encryption_Algorithm(){
+        
+        if (algo_aes_256_cbc.isSelected()) {
+            algo_used="aes_256_cbc";
         }
+        else if (algo_aes_256_ecb.isSelected()) {
+            algo_used="aes_256_ecb";
+        }
+        else if (algo_aria_256_ecb.isSelected()) {
+            algo_used="aria_256_ecb";
+        }
+        else if (algo_aria_256_ofb.isSelected()) {
+            algo_used="aria_256_ofb";
+        }
+        else if (algo_cast5_cbc.isSelected()) {
+            algo_used="cast5_cbc";
+        }
+        else if (algo_cast_cbc.isSelected()) {
+            algo_used="cast_cbc";
+        }
+        else if (algo_des3.isSelected()) {
+            algo_used="aes_256_cbc";
+        }
+        else if (algo_des_ecb.isSelected()) {
+            algo_used="aes_256_ecb";
+        }
+        else if (algo_rc4.isSelected()) {
+            algo_used="rc4";
+        }
+        else {
+            algo_used="";
+        }     
+         
+        return algo_used;
     }
     
-    
-    private int getRandomNumberInRange(int min, int max) {
-	Random r = new Random();
-        return r.ints(min, (max + 1)).limit(1).findFirst().getAsInt();
-    }
-    
-    private void Writeit(){
+    private void WriteEntry(String Nm,String dt,String pw){
         BufferedWriter writer = null;
-            try {
-                writer = new BufferedWriter(new FileWriter(pathtest, true));
-                
-                writer.write("Celsius ++ Fahrenheit\n");
-
-                    for (int i = 0; i < 50; i++) {
-                        int valgenerated = getRandomNumberInRange(0, 2500);
-                        float pass=Float.parseFloat(String.valueOf(valgenerated));
-                        writer.append(String.valueOf(valgenerated)+"\n");
-                        writer.flush();
-                    }
-
-            } catch (IOException ex) {
-                System.out.println("An ********** ."+ex.getMessage());
-            } finally {
-                try {
-                    writer.close();
-                } catch (IOException ex) {
-                    System.out.println("An ********** ."+ex.getMessage());
-                }
-            }
-    }
-    
-    private void Des3(String key, int ciphermode,File inpt, File oupt){
         try {
-            FileInputStream fis= new FileInputStream(inpt);
-            FileOutputStream fos= new FileOutputStream(oupt);
-            
-            DESKeySpec deskeyspec=new DESKeySpec(key.getBytes());
-            
-            SecretKeyFactory skf = SecretKeyFactory.getInstance("DES");
-            
-            SecretKey sk = skf.generateSecret(deskeyspec);
-            
-            Cipher cip = Cipher.getInstance("DES/ECB/PKCSSPadding");
-            
-            if (ciphermode==Cipher.ENCRYPT_MODE) {
-                cip.init(Cipher.ENCRYPT_MODE,sk,SecureRandom.getInstance("SHA1PRNG"));
-                CipherInputStream cis= new CipherInputStream(fis, cip);
-            } else if (ciphermode==Cipher.DECRYPT_MODE){
-                cip.init(Cipher.DECRYPT_MODE,sk,SecureRandom.getInstance("SHA1PRNG"));
-                CipherOutputStream cos= new CipherOutputStream(fos, cip);
+            writer = new BufferedWriter(new FileWriter("CoreDump.csv", true));
+            writer.append(Nm+","+dt+","+pw+"\n");
+            writer.flush();
+        } catch (IOException ex) {
+            System.out.println("WriteEntry Errored "+ex.getMessage());
+        } finally {
+            try {
+                writer.close();
+            } catch (IOException ex) {
+                System.out.println("WriteEntry Finally Errored "+ex.getMessage());
             }
+        }
+       LoadEntries();
+    }
+    
+    private void LoadEntries(){
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(new File("CoreDump.csv")));
             
-            
-        } catch (FileNotFoundException ex) {
-            System.out.println("An ********** Des3 FileNotFoundException."+ex.getMessage());
-        } catch (InvalidKeyException ex1) {
-            System.out.println("An ********** Des3 InvalidKeyException."+ex1.getMessage());
-        } catch (NoSuchAlgorithmException ex2) {
-            System.out.println("An ********** Des3 NoSuchAlgorithmException."+ex2.getMessage());
-        } catch (InvalidKeySpecException ex3) {
-            System.out.println("An ********** Des3 InvalidKeySpecException."+ex3.getMessage());
-        } catch (NoSuchPaddingException ex4) {
-            System.out.println("An ********** Des3 NoSuchPaddingException."+ex4.getMessage());
+            List<String[]> elements = new ArrayList<String[]>();
+            String line = null;
+            while((line = br.readLine())!=null) {
+                String[] splitted = line.split(",");
+                elements.add(splitted);
+            }
+            br.close();
+
+            JTable table = tbl_key_pair;
+            String[] columNames = new String[] {
+                    "Name", "Date", "Password"
+                };
+
+            Object[][] content = new Object[elements.size()][3];
+
+            for(int i=0; i<elements.size(); i++) {
+                content[i][0] = elements.get(i)[0];
+                content[i][1] = elements.get(i)[1];
+                content[i][2] = elements.get(i)[2];
+            }
+
+            table.setModel(new DefaultTableModel(content,columNames));
+            //System.out.println(table.getModel().getValueAt(1, 1));
+
+        } catch (Exception ex) {
+            System.out.println("LoadEntries Errored "+ex.getMessage());
         }
     }
     
-    private static void WriteCrypto(InputStream ins, OutputStream ous) throws IOException{
-        byte[] buffa = new byte[64];
-        int byteread = 0 , finl;
-        
-        while ( (byteread== (ins.read(buffa))) )  {            
-            ous.write(buffa,0,byteread);
-        }
-        
-        ous.close();
-        ins.close();
-    }
-
+    private void File_Encryption(String password, File honeypot){}
+    
+    private void File_Decryption(String password, File honeypot){}
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -170,7 +221,9 @@ public class Casa extends javax.swing.JFrame {
         buttonGroup1 = new javax.swing.ButtonGroup();
         Home_Body = new javax.swing.JPanel();
         jTabbedPane1 = new javax.swing.JTabbedPane();
-        jPanel1 = new javax.swing.JPanel();
+        Panel_start = new javax.swing.JPanel();
+        pan_start = new javax.swing.JPanel();
+        Btn_Next = new javax.swing.JButton();
         jPanel4 = new javax.swing.JPanel();
         StartNoise = new javax.swing.JButton();
         jLabel2 = new javax.swing.JLabel();
@@ -179,38 +232,49 @@ public class Casa extends javax.swing.JFrame {
         jLabel3 = new javax.swing.JLabel();
         slidavalue = new javax.swing.JLabel();
         jPanel5 = new javax.swing.JPanel();
-        jRadioButton1 = new javax.swing.JRadioButton();
-        jRadioButton2 = new javax.swing.JRadioButton();
-        jRadioButton3 = new javax.swing.JRadioButton();
-        jRadioButton4 = new javax.swing.JRadioButton();
-        jRadioButton5 = new javax.swing.JRadioButton();
-        jRadioButton6 = new javax.swing.JRadioButton();
-        jRadioButton7 = new javax.swing.JRadioButton();
-        jRadioButton11 = new javax.swing.JRadioButton();
-        jRadioButton12 = new javax.swing.JRadioButton();
+        algo_des3 = new javax.swing.JRadioButton();
+        algo_aes_256_cbc = new javax.swing.JRadioButton();
+        algo_aes_256_ecb = new javax.swing.JRadioButton();
+        algo_cast5_cbc = new javax.swing.JRadioButton();
+        algo_cast_cbc = new javax.swing.JRadioButton();
+        algo_aria_256_ecb = new javax.swing.JRadioButton();
+        algo_des_ecb = new javax.swing.JRadioButton();
+        algo_rc4 = new javax.swing.JRadioButton();
+        algo_aria_256_ofb = new javax.swing.JRadioButton();
+        Btn_Reset = new javax.swing.JButton();
         jPanel6 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
-        jTextField1 = new javax.swing.JTextField();
-        jButton1 = new javax.swing.JButton();
-        jPanel2 = new javax.swing.JPanel();
+        SaveFilePath = new javax.swing.JTextField();
+        Browse_Output = new javax.swing.JButton();
+        log_dump = new javax.swing.JLabel();
+        Panel_home = new javax.swing.JPanel();
         jPanel7 = new javax.swing.JPanel();
         jScrollPane2 = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
+        tbl_key_pair = new javax.swing.JTable();
         jPanel8 = new javax.swing.JPanel();
         jLabel5 = new javax.swing.JLabel();
-        jTextField2 = new javax.swing.JTextField();
-        jTextField3 = new javax.swing.JTextField();
+        entry_name = new javax.swing.JTextField();
+        entry_date = new javax.swing.JTextField();
         jLabel4 = new javax.swing.JLabel();
         jLabel6 = new javax.swing.JLabel();
-        jTextField4 = new javax.swing.JTextField();
-        jButton2 = new javax.swing.JButton();
-        jButton3 = new javax.swing.JButton();
+        entry_pwd = new javax.swing.JTextField();
+        Btn_ReGenerate = new javax.swing.JButton();
+        Btn_Table = new javax.swing.JButton();
         jPanel3 = new javax.swing.JPanel();
         Home_Header = new javax.swing.JPanel();
+        jLabel7 = new javax.swing.JLabel();
+        jLabel8 = new javax.swing.JLabel();
         Home_Tail = new javax.swing.JPanel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setMinimumSize(new java.awt.Dimension(700, 500));
+
+        Btn_Next.setText("Next");
+        Btn_Next.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                Btn_NextActionPerformed(evt);
+            }
+        });
 
         jPanel4.setBorder(javax.swing.BorderFactory.createTitledBorder("Noise"));
 
@@ -257,7 +321,7 @@ public class Casa extends javax.swing.JFrame {
                         .addComponent(slidalen, javax.swing.GroupLayout.PREFERRED_SIZE, 386, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(slidavalue, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addContainerGap(139, Short.MAX_VALUE))))
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -278,32 +342,32 @@ public class Casa extends javax.swing.JFrame {
 
         jPanel5.setBorder(javax.swing.BorderFactory.createTitledBorder("Algorithm"));
 
-        buttonGroup1.add(jRadioButton1);
-        jRadioButton1.setText("des3");
+        buttonGroup1.add(algo_des3);
+        algo_des3.setText("des3");
 
-        buttonGroup1.add(jRadioButton2);
-        jRadioButton2.setText("aes-256-cbc");
+        buttonGroup1.add(algo_aes_256_cbc);
+        algo_aes_256_cbc.setText("aes-256-cbc");
 
-        buttonGroup1.add(jRadioButton3);
-        jRadioButton3.setText("aes-256-ecb2");
+        buttonGroup1.add(algo_aes_256_ecb);
+        algo_aes_256_ecb.setText("aes-256-ecb");
 
-        buttonGroup1.add(jRadioButton4);
-        jRadioButton4.setText("cast5-cbc");
+        buttonGroup1.add(algo_cast5_cbc);
+        algo_cast5_cbc.setText("cast5-cbc");
 
-        buttonGroup1.add(jRadioButton5);
-        jRadioButton5.setText("cast-cbc");
+        buttonGroup1.add(algo_cast_cbc);
+        algo_cast_cbc.setText("cast-cbc");
 
-        buttonGroup1.add(jRadioButton6);
-        jRadioButton6.setText("aria-256-ecb");
+        buttonGroup1.add(algo_aria_256_ecb);
+        algo_aria_256_ecb.setText("aria-256-ecb");
 
-        buttonGroup1.add(jRadioButton7);
-        jRadioButton7.setText("des-ecb");
+        buttonGroup1.add(algo_des_ecb);
+        algo_des_ecb.setText("des-ecb");
 
-        buttonGroup1.add(jRadioButton11);
-        jRadioButton11.setText("rc4");
+        buttonGroup1.add(algo_rc4);
+        algo_rc4.setText("rc4");
 
-        buttonGroup1.add(jRadioButton12);
-        jRadioButton12.setText("aria-256-ofb");
+        buttonGroup1.add(algo_aria_256_ofb);
+        algo_aria_256_ofb.setText("aria-256-ofb");
 
         javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
         jPanel5.setLayout(jPanel5Layout);
@@ -313,50 +377,61 @@ public class Casa extends javax.swing.JFrame {
                 .addContainerGap()
                 .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel5Layout.createSequentialGroup()
-                        .addComponent(jRadioButton4)
+                        .addComponent(algo_cast5_cbc)
                         .addGap(18, 18, 18)
-                        .addComponent(jRadioButton5)
+                        .addComponent(algo_cast_cbc)
                         .addGap(18, 18, 18)
-                        .addComponent(jRadioButton1)
+                        .addComponent(algo_des3)
                         .addGap(18, 18, 18)
-                        .addComponent(jRadioButton7))
+                        .addComponent(algo_des_ecb))
                     .addGroup(jPanel5Layout.createSequentialGroup()
-                        .addComponent(jRadioButton2)
+                        .addComponent(algo_aes_256_cbc)
                         .addGap(18, 18, 18)
-                        .addComponent(jRadioButton3)
+                        .addComponent(algo_aes_256_ecb)
                         .addGap(18, 18, 18)
-                        .addComponent(jRadioButton6)))
+                        .addComponent(algo_aria_256_ecb)))
                 .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel5Layout.createSequentialGroup()
                         .addGap(12, 12, 12)
-                        .addComponent(jRadioButton11))
+                        .addComponent(algo_rc4))
                     .addGroup(jPanel5Layout.createSequentialGroup()
                         .addGap(18, 18, 18)
-                        .addComponent(jRadioButton12)))
+                        .addComponent(algo_aria_256_ofb)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel5Layout.setVerticalGroup(
             jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel5Layout.createSequentialGroup()
-                .addGap(24, 24, 24)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jRadioButton2)
-                    .addComponent(jRadioButton3)
-                    .addComponent(jRadioButton6)
-                    .addComponent(jRadioButton12))
-                .addGap(18, 18, 18)
+                    .addComponent(algo_aes_256_cbc)
+                    .addComponent(algo_aes_256_ecb)
+                    .addComponent(algo_aria_256_ecb)
+                    .addComponent(algo_aria_256_ofb))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jRadioButton4)
-                    .addComponent(jRadioButton5)
-                    .addComponent(jRadioButton1)
-                    .addComponent(jRadioButton7)
-                    .addComponent(jRadioButton11))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(algo_cast5_cbc)
+                    .addComponent(algo_cast_cbc)
+                    .addComponent(algo_des3)
+                    .addComponent(algo_des_ecb)
+                    .addComponent(algo_rc4)))
         );
+
+        Btn_Reset.setText("Reset");
+        Btn_Reset.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                Btn_ResetActionPerformed(evt);
+            }
+        });
 
         jLabel1.setText("Output");
 
-        jButton1.setText("Browse");
+        Browse_Output.setText("Browse");
+        Browse_Output.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                Browse_OutputActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
         jPanel6.setLayout(jPanel6Layout);
@@ -364,123 +439,168 @@ public class Casa extends javax.swing.JFrame {
             jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel6Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jLabel1)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 500, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jButton1)
+                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(log_dump, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(jPanel6Layout.createSequentialGroup()
+                        .addComponent(jLabel1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(SaveFilePath, javax.swing.GroupLayout.PREFERRED_SIZE, 500, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 30, Short.MAX_VALUE)
+                        .addComponent(Browse_Output)))
                 .addContainerGap())
         );
         jPanel6Layout.setVerticalGroup(
             jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel6Layout.createSequentialGroup()
-                .addGap(20, 20, 20)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel1)
-                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButton1))
-                .addContainerGap(27, Short.MAX_VALUE))
+                    .addComponent(SaveFilePath, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(Browse_Output))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(log_dump, javax.swing.GroupLayout.DEFAULT_SIZE, 30, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
+        javax.swing.GroupLayout pan_startLayout = new javax.swing.GroupLayout(pan_start);
+        pan_start.setLayout(pan_startLayout);
+        pan_startLayout.setHorizontalGroup(
+            pan_startLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(pan_startLayout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(pan_startLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jPanel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jPanel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(jPanel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, pan_startLayout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 483, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(Btn_Reset)
+                        .addGap(28, 28, 28)
+                        .addComponent(Btn_Next)
+                        .addGap(55, 55, 55)))
                 .addContainerGap())
         );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
+        pan_startLayout.setVerticalGroup(
+            pan_startLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(pan_startLayout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGap(12, 12, 12)
+                .addGroup(pan_startLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(Btn_Next)
+                    .addComponent(Btn_Reset))
                 .addContainerGap())
         );
 
-        jTabbedPane1.addTab("Start", jPanel1);
+        javax.swing.GroupLayout Panel_startLayout = new javax.swing.GroupLayout(Panel_start);
+        Panel_start.setLayout(Panel_startLayout);
+        Panel_startLayout.setHorizontalGroup(
+            Panel_startLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(pan_start, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+        );
+        Panel_startLayout.setVerticalGroup(
+            Panel_startLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(pan_start, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+        );
+
+        jTabbedPane1.addTab("Start", Panel_start);
 
         jPanel7.setBorder(javax.swing.BorderFactory.createTitledBorder("Key-Pair"));
 
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+        tbl_key_pair.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
+
             },
             new String [] {
-                "Title 1", "Title 2", "Title 3", "Title 4"
+                "null", "null", "null"
             }
-        ));
-        jScrollPane2.setViewportView(jTable1);
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        tbl_key_pair.getTableHeader().setReorderingAllowed(false);
+        jScrollPane2.setViewportView(tbl_key_pair);
+        if (tbl_key_pair.getColumnModel().getColumnCount() > 0) {
+            tbl_key_pair.getColumnModel().getColumn(0).setMinWidth(100);
+            tbl_key_pair.getColumnModel().getColumn(0).setPreferredWidth(100);
+            tbl_key_pair.getColumnModel().getColumn(1).setMinWidth(100);
+            tbl_key_pair.getColumnModel().getColumn(1).setPreferredWidth(100);
+        }
 
         javax.swing.GroupLayout jPanel7Layout = new javax.swing.GroupLayout(jPanel7);
         jPanel7.setLayout(jPanel7Layout);
         jPanel7Layout.setHorizontalGroup(
             jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 437, Short.MAX_VALUE)
+            .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 449, Short.MAX_VALUE)
         );
         jPanel7Layout.setVerticalGroup(
             jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel7Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-                .addContainerGap())
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
         );
 
         jPanel8.setBorder(javax.swing.BorderFactory.createTitledBorder("Generate Key Pairs"));
 
         jLabel5.setText("Time");
 
-        jTextField2.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        jTextField2.setToolTipText("");
+        entry_name.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        entry_name.setToolTipText("");
 
-        jTextField3.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        jTextField3.setToolTipText("");
+        entry_date.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        entry_date.setToolTipText("");
 
         jLabel4.setText("Name");
 
         jLabel6.setText("Generated Password");
 
-        jTextField4.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        jTextField4.setToolTipText("");
+        entry_pwd.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        entry_pwd.setToolTipText("");
 
-        jButton2.setText("Re-Generate");
+        Btn_ReGenerate.setText("Re-Generate");
+        Btn_ReGenerate.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                Btn_ReGenerateActionPerformed(evt);
+            }
+        });
 
-        jButton3.setText("Finish");
+        Btn_Table.setText("Finish");
+        Btn_Table.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                Btn_TableActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel8Layout = new javax.swing.GroupLayout(jPanel8);
         jPanel8.setLayout(jPanel8Layout);
         jPanel8Layout.setHorizontalGroup(
             jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel8Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jTextField4)
-                    .addComponent(jTextField2, javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jTextField3, javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel8Layout.createSequentialGroup()
+            .addComponent(entry_name)
+            .addComponent(entry_date, javax.swing.GroupLayout.Alignment.TRAILING)
+            .addComponent(entry_pwd, javax.swing.GroupLayout.Alignment.TRAILING)
+            .addGroup(jPanel8Layout.createSequentialGroup()
+                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel8Layout.createSequentialGroup()
+                        .addContainerGap()
                         .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                             .addComponent(jLabel5, javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel4, javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING))
-                        .addGap(0, 0, Short.MAX_VALUE)))
-                .addContainerGap())
-            .addGroup(jPanel8Layout.createSequentialGroup()
-                .addGap(57, 57, 57)
-                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 124, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(57, Short.MAX_VALUE))
+                            .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING)))
+                    .addGroup(jPanel8Layout.createSequentialGroup()
+                        .addGap(57, 57, 57)
+                        .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(Btn_ReGenerate)
+                            .addComponent(Btn_Table, javax.swing.GroupLayout.PREFERRED_SIZE, 124, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addContainerGap(65, Short.MAX_VALUE))
         );
         jPanel8Layout.setVerticalGroup(
             jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -488,50 +608,49 @@ public class Casa extends javax.swing.JFrame {
                 .addContainerGap()
                 .addComponent(jLabel4)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(24, 24, 24)
+                .addComponent(entry_name, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
                 .addComponent(jLabel5)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jTextField3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
+                .addComponent(entry_date, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jLabel6)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 50, Short.MAX_VALUE)
-                .addComponent(jButton2)
+                .addComponent(entry_pwd, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
-                .addComponent(jButton3)
+                .addComponent(Btn_ReGenerate)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 62, Short.MAX_VALUE)
+                .addComponent(Btn_Table)
                 .addContainerGap())
         );
 
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addContainerGap()
+        javax.swing.GroupLayout Panel_homeLayout = new javax.swing.GroupLayout(Panel_home);
+        Panel_home.setLayout(Panel_homeLayout);
+        Panel_homeLayout.setHorizontalGroup(
+            Panel_homeLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(Panel_homeLayout.createSequentialGroup()
                 .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addContainerGap())
         );
-        jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
+        Panel_homeLayout.setVerticalGroup(
+            Panel_homeLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(Panel_homeLayout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(Panel_homeLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jPanel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
 
-        jTabbedPane1.addTab("Home", jPanel2);
+        jTabbedPane1.addTab("Home", Panel_home);
 
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 731, Short.MAX_VALUE)
+            .addGap(0, 733, Short.MAX_VALUE)
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -556,15 +675,35 @@ public class Casa extends javax.swing.JFrame {
         Home_Header.setBackground(new java.awt.Color(153, 153, 255));
         Home_Header.setPreferredSize(new java.awt.Dimension(700, 80));
 
+        jLabel7.setFont(new java.awt.Font("DialogInput", 1, 18)); // NOI18N
+        jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel7.setText("PassMan KeyStore");
+
+        jLabel8.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel8.setText("Generate and Store your Passwords");
+
         javax.swing.GroupLayout Home_HeaderLayout = new javax.swing.GroupLayout(Home_Header);
         Home_Header.setLayout(Home_HeaderLayout);
         Home_HeaderLayout.setHorizontalGroup(
             Home_HeaderLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 736, Short.MAX_VALUE)
+            .addGroup(Home_HeaderLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(Home_HeaderLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(Home_HeaderLayout.createSequentialGroup()
+                        .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addContainerGap())
+                    .addGroup(Home_HeaderLayout.createSequentialGroup()
+                        .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, 704, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 22, Short.MAX_VALUE))))
         );
         Home_HeaderLayout.setVerticalGroup(
             Home_HeaderLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 80, Short.MAX_VALUE)
+            .addGroup(Home_HeaderLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel8, javax.swing.GroupLayout.DEFAULT_SIZE, 18, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
         getContentPane().add(Home_Header, java.awt.BorderLayout.PAGE_START);
@@ -576,7 +715,7 @@ public class Casa extends javax.swing.JFrame {
         Home_Tail.setLayout(Home_TailLayout);
         Home_TailLayout.setHorizontalGroup(
             Home_TailLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 736, Short.MAX_VALUE)
+            .addGap(0, 738, Short.MAX_VALUE)
         );
         Home_TailLayout.setVerticalGroup(
             Home_TailLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -622,14 +761,113 @@ public class Casa extends javax.swing.JFrame {
                 proc.waitFor();
 
             } catch (IOException ex) {
-                Logger.getLogger(Casa.class.getName()).log(Level.SEVERE, null, ex);
+                System.out.println("StartNoise > IOException "+ex);
             } catch (InterruptedException ex) {
-                Logger.getLogger(Casa.class.getName()).log(Level.SEVERE, null, ex);
+                System.out.println("StartNoise > InterruptedException "+ex);
             }
             
         }
         
     }//GEN-LAST:event_StartNoiseActionPerformed
+
+    private void Browse_OutputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Browse_OutputActionPerformed
+        // TODO add your handling code here:
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Specify output Destination");   
+
+        int userSelection = fileChooser.showSaveDialog(this);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            //System.out.println("Save as file: " + fileToSave.getAbsolutePath());
+            pathtest=String.valueOf(fileChooser.getSelectedFile());
+            SaveFilePath.setText(String.valueOf(fileChooser.getSelectedFile()));
+        }
+    }//GEN-LAST:event_Browse_OutputActionPerformed
+
+    private void Btn_ReGenerateActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Btn_ReGenerateActionPerformed
+        // TODO add your handling code here:
+        try {
+            Process proc = Runtime.getRuntime().exec("head -c 20 /dev/random");
+
+            BufferedReader reader =new BufferedReader(new InputStreamReader(proc.getInputStream()));
+
+            String line = "";
+            StringBuilder sb=new StringBuilder();
+            while((line = reader.readLine()) != null) {
+                //System.out.print(line + "\n");
+                sb.append(line);  
+            }
+            entry_pwd.setText(String.valueOf(sb));
+            proc.waitFor();
+
+        } catch (IOException ex) {
+            System.out.println("Btn_ReGenerate > IOException "+ex);
+        } catch (InterruptedException ex) {
+            System.out.println("Btn_ReGenerate > InterruptedException "+ex);
+        }
+    }//GEN-LAST:event_Btn_ReGenerateActionPerformed
+
+    private void Btn_ResetActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Btn_ResetActionPerformed
+        // TODO add your handling code here:
+        slidaint=0;
+        pathtest="";algo_used="";
+        seed=Boolean.FALSE;
+        SaveFilePath.setText("");
+        noisetext.setText("");
+    }//GEN-LAST:event_Btn_ResetActionPerformed
+
+    private void Btn_NextActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Btn_NextActionPerformed
+        // TODO add your handling code here:
+        BufferedWriter writer = null;
+        Encryption_Algorithm();
+        
+        System.out.println("algo_used > "+algo_used);
+        System.out.println("pathtest > "+pathtest);
+        System.out.println("slidaint > "+slidaint);
+        
+        if (algo_used.equals("") || pathtest.equals("") || slidaint<30) {
+            JOptionPane.showMessageDialog(this,"Misssing required data.\nFill all required fields","Blanks Fields"
+                ,JOptionPane.ERROR_MESSAGE);
+        }else{
+            try {
+                writer = new BufferedWriter(new FileWriter("PassMan.conf", true));
+                
+                writer.append("Enc_type Assymetric Symetric\n");
+                writer.append("Enc_Algo , "+algo_used+"\n");
+                writer.append("Enc_File , "+pathtest+"\n");  
+                writer.append("Noise , "+noisetext.getText()+"\n");
+                writer.append("Noise_Len , "+slidaint+"\n");  
+                
+                writer.flush();
+                
+                jTabbedPane1.setSelectedIndex(1);
+
+            } catch (IOException ex) {
+                System.out.println("Btn_Next > IOException "+ex);
+            } finally {
+                try {
+                    writer.close();
+                } catch (IOException ex) {
+                    System.out.println("Btn_Next > IOException Finally "+ex);
+                }
+            }
+        }
+        
+    }//GEN-LAST:event_Btn_NextActionPerformed
+
+    private void Btn_TableActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Btn_TableActionPerformed
+        // TODO add your handling code here:
+        if (entry_name.getText().trim().equals("") || entry_date.getText().trim().equals("") || entry_pwd.getText().trim().equals("")) {
+            JOptionPane.showMessageDialog(this, "Esure all fields are filled","Unxepected Input",JOptionPane.INFORMATION_MESSAGE);
+        }else{
+            WriteEntry(entry_name.getText(), entry_date.getText(), entry_pwd.getText());
+            System.out.println("Name >"+entry_name.getText());
+            System.out.println("Date >"+entry_date.getText());
+            System.out.println("Passwd >"+entry_pwd.getText());
+        }
+        
+    }//GEN-LAST:event_Btn_TableActionPerformed
 
     /**
      * @param args the command line arguments
@@ -642,7 +880,7 @@ public class Casa extends javax.swing.JFrame {
          */
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
+                if ("Metal".equals(info.getName())) {
                     javax.swing.UIManager.setLookAndFeel(info.getClassName());
                     break;
                 }
@@ -667,46 +905,52 @@ public class Casa extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton Browse_Output;
+    private javax.swing.JButton Btn_Next;
+    private javax.swing.JButton Btn_ReGenerate;
+    private javax.swing.JButton Btn_Reset;
+    private javax.swing.JButton Btn_Table;
     private javax.swing.JPanel Home_Body;
     private javax.swing.JPanel Home_Header;
     private javax.swing.JPanel Home_Tail;
+    private javax.swing.JPanel Panel_home;
+    private javax.swing.JPanel Panel_start;
+    private javax.swing.JTextField SaveFilePath;
     private javax.swing.JButton StartNoise;
+    private javax.swing.JRadioButton algo_aes_256_cbc;
+    private javax.swing.JRadioButton algo_aes_256_ecb;
+    private javax.swing.JRadioButton algo_aria_256_ecb;
+    private javax.swing.JRadioButton algo_aria_256_ofb;
+    private javax.swing.JRadioButton algo_cast5_cbc;
+    private javax.swing.JRadioButton algo_cast_cbc;
+    private javax.swing.JRadioButton algo_des3;
+    private javax.swing.JRadioButton algo_des_ecb;
+    private javax.swing.JRadioButton algo_rc4;
     private javax.swing.ButtonGroup buttonGroup1;
-    private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
-    private javax.swing.JButton jButton3;
+    private javax.swing.JTextField entry_date;
+    private javax.swing.JTextField entry_name;
+    private javax.swing.JTextField entry_pwd;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JPanel jPanel2;
+    private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel jLabel8;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel5;
     private javax.swing.JPanel jPanel6;
     private javax.swing.JPanel jPanel7;
     private javax.swing.JPanel jPanel8;
-    private javax.swing.JRadioButton jRadioButton1;
-    private javax.swing.JRadioButton jRadioButton11;
-    private javax.swing.JRadioButton jRadioButton12;
-    private javax.swing.JRadioButton jRadioButton2;
-    private javax.swing.JRadioButton jRadioButton3;
-    private javax.swing.JRadioButton jRadioButton4;
-    private javax.swing.JRadioButton jRadioButton5;
-    private javax.swing.JRadioButton jRadioButton6;
-    private javax.swing.JRadioButton jRadioButton7;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JTabbedPane jTabbedPane1;
-    private javax.swing.JTable jTable1;
-    private javax.swing.JTextField jTextField1;
-    private javax.swing.JTextField jTextField2;
-    private javax.swing.JTextField jTextField3;
-    private javax.swing.JTextField jTextField4;
+    private javax.swing.JLabel log_dump;
     private javax.swing.JTextField noisetext;
+    private javax.swing.JPanel pan_start;
     private javax.swing.JSlider slidalen;
     private javax.swing.JLabel slidavalue;
+    private javax.swing.JTable tbl_key_pair;
     // End of variables declaration//GEN-END:variables
 }
