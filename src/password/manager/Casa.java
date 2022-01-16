@@ -6,6 +6,9 @@
 package password.manager;
 
 import java.awt.Dimension;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -79,15 +82,17 @@ public class Casa extends javax.swing.JFrame {
         int locationX=(dim.width-jframWidth)/2;
         int locationY=(dim.height-jframHeight)/2;
         this.setLocation(locationX, locationY);
+        
+        this.setTitle("PassMan KeyStore");
                 
         init();
     }
     
     private void init(){        
-        paswd=JOptionPane.showInputDialog(this, "Enter your Symmetric Password\nThis shall be used for Encryption and Decryption","Master Password",JOptionPane.QUESTION_MESSAGE);
+        paswd=JOptionPane.showInputDialog(this, "Enter your Symmetric Password, that is used for Encryption and Decryption.","Master Password",JOptionPane.YES_OPTION);
         
         if (paswd.equals("")) {
-            paswd=JOptionPane.showInputDialog(this, "Enter your Symmetric Password\nThis shall be used for Encryption and Decryption","Master Password",JOptionPane.QUESTION_MESSAGE);
+            paswd=JOptionPane.showInputDialog(this, "Enter your Symmetric Password, that is used for Encryption and Decryption.","Master Password",JOptionPane.YES_OPTION);
         }
                 
         passwd = new Passwd();
@@ -112,7 +117,7 @@ public class Casa extends javax.swing.JFrame {
         fienc=new FileEncrypt();
         
         if (full_pwd.equals("")) {
-            System.out.println("Password is Null");
+            //System.out.println("Password is Null");
         }else{
             try {
                 String enc_entry=fienc.Enc_File(Nm+","+dt+","+pw, full_pwd);
@@ -155,8 +160,8 @@ public class Casa extends javax.swing.JFrame {
             while((line = br.readLine())!=null) {
                 String filelines = fienc.Dec_File(line.replace("**", "\n"),full_pwd,"");
                 String spl[]=filelines.split(",");
-                System.out.println("Encry "+filelines);
-                System.out.println("Decry "+spl);
+                //System.out.println("Encry "+filelines);
+                //System.out.println("Decry "+spl);
                 elements.add(spl);
                 
             }
@@ -205,6 +210,7 @@ public class Casa extends javax.swing.JFrame {
         entry_pwd = new javax.swing.JTextField();
         Btn_ReGenerate = new javax.swing.JButton();
         Btn_Table = new javax.swing.JButton();
+        Btn_Copypwd = new javax.swing.JButton();
         Home_Header = new javax.swing.JPanel();
         jLabel7 = new javax.swing.JLabel();
         jLabel8 = new javax.swing.JLabel();
@@ -212,6 +218,11 @@ public class Casa extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setMinimumSize(new java.awt.Dimension(700, 500));
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosing(java.awt.event.WindowEvent evt) {
+                formWindowClosing(evt);
+            }
+        });
 
         Tab_Main.addChangeListener(new javax.swing.event.ChangeListener() {
             public void stateChanged(javax.swing.event.ChangeEvent evt) {
@@ -288,6 +299,13 @@ public class Casa extends javax.swing.JFrame {
             }
         });
 
+        Btn_Copypwd.setText("Copy Password");
+        Btn_Copypwd.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                Btn_CopypwdActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel8Layout = new javax.swing.GroupLayout(jPanel8);
         jPanel8.setLayout(jPanel8Layout);
         jPanel8Layout.setHorizontalGroup(
@@ -305,10 +323,11 @@ public class Casa extends javax.swing.JFrame {
                             .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING)))
                     .addGroup(jPanel8Layout.createSequentialGroup()
                         .addGap(57, 57, 57)
-                        .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(Btn_ReGenerate)
-                            .addComponent(Btn_Table, javax.swing.GroupLayout.PREFERRED_SIZE, 124, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addContainerGap(65, Short.MAX_VALUE))
+                        .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(Btn_ReGenerate, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(Btn_Table, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(Btn_Copypwd, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
+                .addContainerGap(46, Short.MAX_VALUE))
         );
         jPanel8Layout.setVerticalGroup(
             jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -327,9 +346,11 @@ public class Casa extends javax.swing.JFrame {
                 .addComponent(entry_pwd, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(Btn_ReGenerate)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 62, Short.MAX_VALUE)
+                .addGap(18, 18, 18)
                 .addComponent(Btn_Table)
-                .addContainerGap())
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(Btn_Copypwd)
+                .addContainerGap(19, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout Panel_homeLayout = new javax.swing.GroupLayout(Panel_home);
@@ -448,14 +469,13 @@ public class Casa extends javax.swing.JFrame {
     private void Btn_TableActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Btn_TableActionPerformed
         // TODO add your handling code here:
         if (entry_name.getText().trim().equals("") || entry_date.getText().trim().equals("") || entry_pwd.getText().trim().equals("")) {
-            JOptionPane.showMessageDialog(this, "Esure all fields are filled","Unxepected Input",JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Ensure all fields are filled","Unxepected Input",JOptionPane.INFORMATION_MESSAGE);
         }else{
             WriteEntry(entry_name.getText(), entry_date.getText(), entry_pwd.getText());
-            System.out.println("Name >"+entry_name.getText());
-            System.out.println("Date >"+entry_date.getText());
-            System.out.println("Passwd >"+entry_pwd.getText());
+            //System.out.println("Name >"+entry_name.getText());
+            //System.out.println("Date >"+entry_date.getText());
+            //System.out.println("Passwd >"+entry_pwd.getText());
         }
-        
     }//GEN-LAST:event_Btn_TableActionPerformed
 
     private void Tab_MainStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_Tab_MainStateChanged
@@ -468,6 +488,29 @@ public class Casa extends javax.swing.JFrame {
             System.out.println("Panel_3 Opened");
         }*/
     }//GEN-LAST:event_Tab_MainStateChanged
+
+    private void Btn_CopypwdActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Btn_CopypwdActionPerformed
+        // TODO add your handling code here:
+        JTable tbl = tbl_key_pair;
+        int column = 2;
+        int row = tbl.getSelectedRow();
+        String value = tbl.getModel().getValueAt(row, column).toString();
+        
+        try {
+            StringSelection selection = new StringSelection(value);
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            clipboard.setContents(selection, selection);
+        } catch (Exception e) {
+            System.out.println("Error as " + e);
+        }
+    }//GEN-LAST:event_Btn_CopypwdActionPerformed
+
+    private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
+        // TODO add your handling code here:
+        JOptionPane.showMessageDialog(this, "Proceeding with closing this application. \nUnsaved data will be lost.","Terminate this session.",JOptionPane.WARNING_MESSAGE);
+        this.dispose();
+        System.exit(0);
+    }//GEN-LAST:event_formWindowClosing
 
     /**
      * @param args the command line arguments
@@ -505,6 +548,7 @@ public class Casa extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton Btn_Copypwd;
     private javax.swing.JButton Btn_ReGenerate;
     private javax.swing.JButton Btn_Table;
     private javax.swing.JPanel Home_Body;
